@@ -1,0 +1,20 @@
+{
+  "name": "electronFile",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "packager": "electron-packager ./ tinypng  --win --arch=x64 --out ../OutApp6 --version 1.1.0 --overwrite --ignore=node_modules --icon=./icon.ico",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^1.8.4",
+    "electron-packager": "^12.0.1",
+    "tinify": "^1.5.0",
+    "vue": "^2.5.16"
+  }
+}

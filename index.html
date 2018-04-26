@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+	<link rel="stylesheet" type="text/css" href="http://t.sact-digital.com/lib/bootstrap.min.css">
+
+</head>
+<body >
+<div class="container" id="vue">
+
+
+  <div class="row">
+  <div class="col-md-9 col-sm-9">
+
+<div class="panel panel-default">
+  <div class="panel-body">
+
+<ol class="breadcrumb">
+  <li>步骤1:选择源文件夹</li>
+  <li v-show="!step[0]">步骤2:开始压缩</li>
+  <li v-show="!step[0] && !step[1] && step[2]">步骤3:请耐心等待</li>
+</ol>
+    
+    <div v-show="step[0]" class="well">选择源文件夹 <button id="open" type="button" class="btn btn-success">打开目录</button></div>
+    
+    <div v-show="step[1]" class="well">开始压缩  <button id="start" type="button" class="btn btn-success">开始压缩图片</button></div>
+  
+    <div v-show="step[2]" class="well">请耐心等待"已压缩进度"达到100%，完成压缩。存放路径：{{yourfileDirPath}}</div>
+   
+  </div>
+</div>
+
+
+<div  v-show="step[1] || step[2]">
+<h3>已压缩进度：</h3>
+<div class="progress" >
+  <div class="progress-bar" role="progressbar"  aria-valuemin="0" aria-valuemax="100" v-bind:style="{width:progressbar+'%'}">
+    {{progressbar}}%
+  </div>
+</div>
+
+</div>
+
+<div  v-show="step[0]">
+<h4>需要压缩的图片：</h4>
+<ul class="list-group">
+  <template v-for="item in picItems">
+    <li class="list-group-item">{{item}}</li>
+  </template>
+</ul>
+
+</div>
+
+
+</div>
+  <div class="col-md-3 col-sm-3">
+    <div v-if="!tinyPngKey" class="alert alert-danger" role="alert">账号出错</div>
+    <h4 v-if="tinyPngKey" style="word-wrap:break-word; word-break:break-all;">账号{{tinyPngKeyName}}：本月已压缩{{ picNum }}张图片，还剩{{500-picNum}}张可压缩</h4>
+    <div  class="form">
+      <div class="form-group">
+        <input type="text" class="form-control" v-model='ivalue' id="exampleInputEmail1" placeholder="账号">
+      </div>
+      <button @click="add"  class="btn btn-default">添加账号</button>
+    </div>
+  </div>
+  </div>
+
+</div>
+
+
+
+
+
+<script type="text/javascript" src="http://t.sact-digital.com/lib/vue.min.js"></script>
+
+<script type="text/javascript">
+
+yourfileDirPath="D:\\tinypngDist"
+confPath="D:\\tinypngConf\\tinypng.json"
+
+globalParm={
+  hasKey:false,
+  folderPath:"./picture/old"
+}
+
+let  fs = require('fs');
+let  join = require('path').join;
+var tinify = require("tinify");
+fs.readFile(confPath,'utf8',function (err, data) {
+        if(err) console.log(err);
+        var test=JSON.parse(data);
+     
+        tinify.key = test.id;
+        app.$data.tinyPngKeyName=test.id;
+
+        tinify.validate(function(err) {
+          if (err) {
+            app.$data.tinyPngKey=false
+            throw err
+          }else{
+            var compressionsThisMonth = tinify.compressionCount;
+            app.$data.picNum=compressionsThisMonth
+            globalParm.hasKey=true
+            app.$data.tinyPngKey=true
+          }
+          
+          
+        })
+
+
+
+});
+
+
+
+var app = new Vue({
+  el: '#vue',
+  data: {
+    message: 'Hello Vue!',
+    total:0,
+    now:0,
+    progressbar:0,
+    picNum:0,
+    picItems:[],
+    yourfileDirPath:yourfileDirPath,
+    step:[1,0,0],
+    ivalue:"",
+    tinyPngKey:true,
+    tinyPngKeyName:""
+
+  },
+  watch:{
+    now: function (val) {
+        if(this.now==0){
+            this.progressbar=0
+        }else{
+            this.progressbar=100*this.now/this.total
+        }
+        
+    }
+  },
+  
+  methods: {
+    init:function(){
+      var _this=this;
+    },
+    add:function(){
+      var _this=this;
+      console.log(_this.ivalue)
+      if(_this.ivalue){
+        text1={id:_this.ivalue}
+        var t = JSON.stringify(text1);
+        fs.writeFileSync(confPath,t)
+        location.reload()
+      }
+      // location.reload()
+    }
+  }
+})
+
+
+
+
+
+
+
+
+//在渲染器进程 (网页) 中。
+  const {ipcRenderer} = require('electron')
+  ipcRenderer.on('asynchronous-reply', (event, arg) => {
+    console.log(arg) // prints "pong"
+    globalParm.folderPath=arg[0]
+    console.log(tinify.key)
+    if(globalParm.hasKey){
+      app.$data.step.splice(0,1,0)
+      app.$data.step.splice(1,1,1)
+    }
+    
+  })
+
+  const openBtn = document.getElementById('open')
+
+  openBtn.addEventListener('click', function (event) {
+    ipcRenderer.send('asynchronous-message', 'ping22')
+  })
+
+
+
+
+function deleteall(path) {  
+    var files = [];  
+    if(fs.existsSync(path)) {  
+        files = fs.readdirSync(path);  
+        files.forEach(function(file, index) {  
+            var curPath = path + "/" + file;  
+            if(fs.statSync(curPath).isDirectory()) { // recurse  
+                deleteall(curPath);  
+            } else { // delete file  
+                fs.unlinkSync(curPath);  
+            }  
+        });  
+        fs.rmdirSync(path);  
+    }  
+}; 
+
+
+
+function findSync(startPath) {
+    let result=[];
+    function finder(path) {
+        let files=fs.readdirSync(path);
+        files.forEach((val,index) => {
+            let fPath=join(path,val);
+            let stats=fs.statSync(fPath);
+            if(stats.isDirectory()) finder(fPath);
+            if(stats.isFile()) result.push(fPath);
+        });
+
+    }
+    finder(startPath);
+
+    return result;
+} 
+
+
+
+function startPic(){
+
+    // deleteall("./picture/new")
+    //fs.mkdirSync(yourfileDirPath);
+    deleteall(yourfileDirPath)
+    fs.mkdirSync(yourfileDirPath);
+    var pathss=globalParm.folderPath
+    var  fileNames=findSync(pathss);
+
+    var fileNames_new=[]
+    fileNames.forEach(item=>{
+
+      // fileNames_new.push(item.replace("picture\\old\\",""))
+      fileNames_new.push(item.replace(pathss+"\\",""))
+    })
+
+    var fileNames_new2=[]
+    fileNames_new.forEach(item=>{
+      if(/\.png$/.test(item) || /\.jpg$/.test(item)){
+          console.log(item)
+          fileNames_new2.push(item)
+
+      }
+    })
+    //picItems
+    app.$data.picItems=fileNames_new2
+
+
+    app.$data.total=fileNames_new2.length
+    app.$data.now=0
+
+    for(var i=0;i<fileNames_new2.length;i++){
+      
+      var source = tinify.fromFile(pathss+"\\"+fileNames_new2[i]);
+      console.log(yourfileDirPath+"\\"+fileNames_new2[i])
+      source.toFile(yourfileDirPath+"\\"+fileNames_new2[i],function(e){
+            app.$data.now++
+            if(e==null){
+                //fs.writeFileSync('./message.txt',"ok");
+            }else{
+                fs.writeFileSync('./message.txt',e);
+            }
+
+
+            if(app.$data.now==app.$data.total){
+              // asynchronous-message-openFolder
+              ipcRenderer.send('asynchronous-message-openFolder', '0')
+            }
+        
+      });
+      
+    }
+}
+
+
+//start
+const startBtn=document.querySelector("#start")
+
+startBtn.addEventListener("click",function(){
+    app.$data.step.splice(1,1,0)
+    app.$data.step.splice(2,1,1)
+    startPic()
+})
+
+
+
+
+
+	</script>
+</body>
+</html>
